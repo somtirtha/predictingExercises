@@ -1,0 +1,101 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Somtirtha Roy"
+date: "January 31st, 2016"
+output: pdf_document
+---
+
+# Introduction
+
+This project is set up for us to experiment on the Weight Lifting Exercise Dataset. It has data from sensors like Jawbone Up, Nike FuelBand, and Fitbit. These are all fitness wear that collect data regarding the activity of the person wearing them. All this information can be harnessed to extract information regarding a person's health, behaviour and patterns in their daily activities. The data set which can be found at: http://groupware.les.inf.puc-rio.br/har contains data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They perform barbell lifts in five different ways each way classified according the level of precision.  
+
+We are trying to train a model to learn from the different features so that we can predict if a person's form is correct or not just by analysing the data sent from the sensors on the person.
+
+# Analysis
+
+We import the two main packages we will need to perform our analysis.
+```{r results="hide"}
+library(caret)
+library(corrplot)
+```
+
+Reading the training and test datasets.
+```{r results="hide"}
+# read the training and test sets
+train_data = read.csv("data/pml-training.csv")
+test_data = read.csv("data/pml-testing.csv")
+names(train_data)
+```
+
+# Preprocess the data
+
+Cleaning and weeding out uneccessary information(noise) from the datasets. Getting rid of NA values.
+```{r results="hide"}
+# clean data
+train_data = train_data[ , colSums(is.na(train_data)) == 0]
+test_data = test_data[ , colSums(is.na(test_data)) == 0]
+```
+
+Getting rid of attributes that don't add any valuable information. Features with text values, starting with X, timestamp and window.
+```{r results="hide", interactive=TRUE}
+classe = train_data$classe
+train_exclude = grepl("^X|timestamp|window", names(train_data))
+train_data = train_data[, !train_exclude]
+train_data = train_data[, sapply(train_data, is.numeric)]
+train_data$classe = classe
+
+test_exclude = grepl("^X|timestamp|window", names(test_data))
+test_data = test_data[, !test_exclude]
+if( length(sapply(test_data, is.numeric)) ) {
+  test_data = test_data[, sapply(test_data, is.numeric)]
+}
+```
+
+# Splitting data
+
+Splitting the training data into training and validation sets.
+```{r}
+# split the training data into training and validation sets
+set.seed(22519) # For reproducibile purpose
+inTrain = createDataPartition(train_data$classe, p=0.70, list=F)
+training_data = train_data[inTrain, ]
+validation_data = train_data[-inTrain, ]
+```
+
+# Training the classifier
+
+We build a model using random forests and use cross validation in order to select the optimum number of and most relevant features for the target variable. We use a 5-fold cross validation and use a mximum of 250 trees for our purpose.
+```{r}
+# training a classifier
+# do cross validation
+rf_model = train(classe ~ ., method="rf", trControl=trainControl(method="cv", 5), ntree=250, data=training_data)
+rf_model$finalModel
+```
+
+# Predicting and evaluation
+
+We predict the data using the model on the validation set and calulate the accuracy of the model on the same data.
+```{r}
+# predict data on test set
+validation_pred = predict(rf_model, validation_data)
+
+# make confusion matrix of the results
+confusionMatrix(validation_data$classe, validation_pred)
+accuracy = postResample(validation_pred, validation_data$classe)
+accuracy
+```
+
+# Results
+As we can see the accuracy comes out to be 99.32 %
+
+# Predicting on the test data set
+```{r}
+# test on the test data set
+test_pred = predict(rf_model, test_data)
+test_pred
+
+```
+
+# Observation
+We observe the results from the test data set and from the data set see that all the data gets predicted/classified correctly.
+
