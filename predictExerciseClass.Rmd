@@ -2,7 +2,7 @@
 title: "Practical Machine Learning Course Project"
 author: "Somtirtha Roy"
 date: "January 31st, 2016"
-output: pdf_document
+output: html_document
 ---
 
 # Introduction
